@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "fatfs.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -27,6 +28,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
+#include "SSD1306.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -68,23 +70,40 @@ static void MX_SPI1_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-void task1(void * pvParameters){
-	char buf[256];
-	while(1){
-		sprintf(buf,"Test message from task 1.\n\r");
-		HAL_UART_Transmit(&huart2, (uint8_t*) buf, strlen(buf), 0xffff);
-		vTaskDelay(1000);
-	}
-	return;
-};
+//void task1(void * pvParameters){
+//	int localCounter = 0;
+//	char buf[256];
+//	while(1){
+//		sprintf(buf,"string1");
+//		LCD_FStr(buf, 0, 0);
+//		sprintf(buf, "counter -> %d", counter);
+//		LCD_FStr(buf, 0, 1);
+//		sprintf(buf, "lC -> %d", localCounter++);
+//		LCD_FStr(buf, 0, 2);
+//		LCD_Update();
+//		vTaskDelay(1000);
+//	}
+//	return;
+//};
+//
+//void task2(void * pvParameters){
+//	char buf[256];
+//	while(1){
+//		sprintf(buf,"Task 2 counter -> %d.\n\r", counter++);
+//		HAL_UART_Transmit(&huart2, (uint8_t*) buf, strlen(buf), 0xffff);
+//		vTaskDelay(1000);
+//	}
+//	return;
+//};
 
-void task2(void * pvParameters){
-	char buf[256];
-	while(1){
-		sprintf(buf,"Test message from task 2.\n\r");
-		HAL_UART_Transmit(&huart2, (uint8_t*) buf, strlen(buf), 0xffff);
-		vTaskDelay(1000);
-	}
+
+void SD_init(){
+	// One line of LCD contains 21 character
+
+	char buf[22];
+	sprintf(buf, "Loading SD card...");
+	LCD_FStr(buf, 0, 0);
+	LCD_Update();
 	return;
 };
 
@@ -122,11 +141,17 @@ int main(void)
   MX_USART2_UART_Init();
   MX_I2C1_Init();
   MX_SPI1_Init();
+  MX_FATFS_Init();
   /* USER CODE BEGIN 2 */
 
+  LCD_Init();
+
+  // Init SD card here
+  SD_init();
+
   // Start task here
-  xTaskCreate(task1, "task1", STACK_SIZE, (void *) NULL, 1, NULL);
-  xTaskCreate(task2, "task2", STACK_SIZE, (void *) NULL, 1, NULL);
+//  xTaskCreate(task1, "task1", STACK_SIZE, (void *) NULL, 1, NULL);
+//  xTaskCreate(task2, "task2", STACK_SIZE, (void *) NULL, 1, NULL);
 
   // Start scheduler here
   vTaskStartScheduler();
@@ -241,7 +266,7 @@ static void MX_SPI1_Init(void)
   hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi1.Init.NSS = SPI_NSS_SOFT;
-  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_128;
   hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -303,29 +328,39 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
-  /*Configure GPIO pins : PD1 PD2 PD3 PD4
-                           PD5 PD6 PD7 */
-  GPIO_InitStruct.Pin = GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3|GPIO_PIN_4
-                          |GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(SDCard_CS_GPIO_Port, SDCard_CS_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : SDCard_CS_Pin */
+  GPIO_InitStruct.Pin = SDCard_CS_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(SDCard_CS_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : PD0 PD1 PD2 PD3
+                           PD4 */
+  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3
+                          |GPIO_PIN_4;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
-  HAL_NVIC_SetPriority(EXTI1_IRQn, 5, 0);
+  HAL_NVIC_SetPriority(EXTI0_IRQn, 15, 0);
+  HAL_NVIC_EnableIRQ(EXTI0_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI1_IRQn, 15, 0);
   HAL_NVIC_EnableIRQ(EXTI1_IRQn);
 
-  HAL_NVIC_SetPriority(EXTI2_IRQn, 5, 0);
+  HAL_NVIC_SetPriority(EXTI2_IRQn, 15, 0);
   HAL_NVIC_EnableIRQ(EXTI2_IRQn);
 
-  HAL_NVIC_SetPriority(EXTI3_IRQn, 5, 0);
+  HAL_NVIC_SetPriority(EXTI3_IRQn, 15, 0);
   HAL_NVIC_EnableIRQ(EXTI3_IRQn);
 
-  HAL_NVIC_SetPriority(EXTI4_IRQn, 5, 0);
+  HAL_NVIC_SetPriority(EXTI4_IRQn, 15, 0);
   HAL_NVIC_EnableIRQ(EXTI4_IRQn);
-
-  HAL_NVIC_SetPriority(EXTI9_5_IRQn, 5, 0);
-  HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
 
 }
 
@@ -333,7 +368,37 @@ static void MX_GPIO_Init(void)
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 	char buf[256];
-	sprintf(buf,"Button pressed!!!\n\r");
+	int button = -1;
+	switch(GPIO_Pin){
+		case GPIO_PIN_0:
+			button = 1;
+			break;
+		case GPIO_PIN_1:
+			button = 1;
+			break;
+		case GPIO_PIN_2:
+			button = 2;
+			break;
+		case GPIO_PIN_3:
+			button = 3;
+			break;
+		case GPIO_PIN_4:
+			button = 4;
+			break;
+		case GPIO_PIN_5:
+			button = 5;
+			break;
+		case GPIO_PIN_6:
+			button = 6;
+			break;
+		case GPIO_PIN_7:
+			button = 7;
+			break;
+		default:
+			return;
+			break;
+	}
+	sprintf(buf,"External IO button %d pressed!\n\r", button);
 	HAL_UART_Transmit(&huart2, (uint8_t*) buf, strlen(buf), 0xffff);
 	return;
 }
