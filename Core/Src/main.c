@@ -69,22 +69,6 @@ static void MX_SPI1_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-//void task1(void * pvParameters){
-//	int localCounter = 0;
-//	char buf[256];
-//	while(1){
-//		sprintf(buf,"string1");
-//		LCD_FStr(buf, 0, 0);
-//		sprintf(buf, "counter -> %d", counter);
-//		LCD_FStr(buf, 0, 1);
-//		sprintf(buf, "lC -> %d", localCounter++);
-//		LCD_FStr(buf, 0, 2);
-//		LCD_Update();
-//		vTaskDelay(1000);
-//	}
-//	return;
-//};
-//
 //void task2(void * pvParameters){
 //	char buf[256];
 //	while(1){
@@ -98,7 +82,6 @@ static void MX_SPI1_Init(void);
 
 void SD_init(){
 	// One line of LCD contains 21 character
-
 	char buf[22];
 	sprintf(buf, "Loading SD card...");
 	LCD_FStr(buf, 0, 0);
@@ -106,6 +89,21 @@ void SD_init(){
 	return;
 };
 
+void OLED_task(void * pvParameters) {
+	// Clear OLED before displaying stuff
+	LCD_Clear();
+	int localCounter = 0;
+	char buf[22];
+	while(1) {
+		sprintf(buf,"string1");
+		LCD_FStr(buf, 0, 0);
+		sprintf(buf, "lC -> %d", localCounter++);
+		LCD_FStr(buf, 0, 2);
+		LCD_Update();
+		vTaskDelay(100);
+	}
+	return;
+};
 
 /* USER CODE END 0 */
 
@@ -148,8 +146,7 @@ int main(void)
   SD_init();
 
   // Start task here
-//  xTaskCreate(task1, "task1", STACK_SIZE, (void *) NULL, 1, NULL);
-//  xTaskCreate(task2, "task2", STACK_SIZE, (void *) NULL, 1, NULL);
+  xTaskCreate(OLED_task, "OLED_task", STACK_SIZE, (void *) NULL, 5, NULL);
 
   // Start scheduler here
   vTaskStartScheduler();
