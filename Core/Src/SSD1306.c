@@ -116,7 +116,7 @@ void LCD_Chr(char ch)
    else ch = 95;   
    for (i = 0; i < 5; i++)
    {
-        lcd_buff[lcd_buff_idx++] = font[ch][i];       
+        lcd_buff[lcd_buff_idx++] = font[(int) ch][i];
    }
    lcd_buff[lcd_buff_idx++] = 0x00;  
    x_cur++;
@@ -143,7 +143,7 @@ void LCD_2xChr(char ch)
    else ch = 95;
    
    for ( i = 0; i < 5; i++ ){
-      c = font[ch][i]; 
+      c = font[(int)ch][i];
       b1  = (c&0x01)*3;
       b1 |= (c&0x02)*6;
       b1 |= (c&0x04)*12;
