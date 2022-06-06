@@ -53,13 +53,18 @@ extern "C" {
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
+void MX_SPI1_Init(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
 #define SDCard_CS_Pin GPIO_PIN_4
 #define SDCard_CS_GPIO_Port GPIOA
 /* USER CODE BEGIN Private defines */
+extern I2C_HandleTypeDef hi2c1;
 
+extern SPI_HandleTypeDef hspi1;
+
+extern UART_HandleTypeDef huart2;
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

@@ -28,6 +28,9 @@
 #include "task.h"
 #include "queue.h"
 #include "SSD1306.h"
+#include "mmc_sd.h"
+#include "fatfs.h"
+#include "fops.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -61,7 +64,7 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_I2C1_Init(void);
-static void MX_SPI1_Init(void);
+void MX_SPI1_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -86,6 +89,25 @@ void SD_init(){
 	sprintf(buf, "Loading SD card...");
 	LCD_FStr(buf, 0, 0);
 	LCD_Update();
+
+	// Wait 1 second before loading SD card
+	HAL_Delay(1000);
+
+	// Clear LCD before showing anything
+	LCD_Clear();
+
+	// Try to get SD card Sector Count
+	sprintf(buf, "SD card sector count");
+	LCD_FStr(buf, 0, 0);
+	sprintf(buf, "%lu", SD_GetSectorCount());
+	LCD_FStr(buf, 0, 1);
+	LCD_Update();
+	HAL_Delay(2000);
+
+	MX_FATFS_Init();
+	exf_mount();
+	exf_getfree();
+
 	return;
 };
 
@@ -243,7 +265,7 @@ static void MX_I2C1_Init(void)
   * @param None
   * @retval None
   */
-static void MX_SPI1_Init(void)
+void MX_SPI1_Init(void)
 {
 
   /* USER CODE BEGIN SPI1_Init 0 */
