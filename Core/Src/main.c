@@ -55,6 +55,12 @@ SPI_HandleTypeDef hspi1;
 
 UART_HandleTypeDef huart2;
 
+
+int OLED_display_status = -1;
+int buttonCounter = 0;
+
+unsigned globalTime = 0;
+unsigned lastEventTime = -1;
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -71,16 +77,6 @@ void MX_SPI1_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
-//void task2(void * pvParameters){
-//	char buf[256];
-//	while(1){
-//		sprintf(buf,"Task 2 counter -> %d.\n\r", counter++);
-//		HAL_UART_Transmit(&huart2, (uint8_t*) buf, strlen(buf), 0xffff);
-//		vTaskDelay(1000);
-//	}
-//	return;
-//};
 
 
 void SD_init(){
@@ -99,7 +95,7 @@ void SD_init(){
 	// Try to get SD card Sector Count
 	sprintf(buf, "SD card sector count");
 	LCD_FStr(buf, 0, 0);
-	sprintf(buf, "%lu", SD_GetSectorCount());
+	sprintf(buf, "%u", SD_GetSectorCount());
 	LCD_FStr(buf, 0, 1);
 	LCD_Update();
 	HAL_Delay(2000);
@@ -112,20 +108,31 @@ void SD_init(){
 };
 
 void OLED_task(void * pvParameters) {
-	// Clear OLED before displaying stuff
-	LCD_Clear();
-	int localCounter = 0;
 	char buf[22];
-	while(1) {
-		sprintf(buf,"string1");
+	while(1){
+		// Clear OLED before displaying stuff
+		LCD_Clear();
+		sprintf(buf, "%s %c", "File Browser", 0x3C);
 		LCD_FStr(buf, 0, 0);
-		sprintf(buf, "lC -> %d", localCounter++);
+		sprintf(buf, "%s", "Player");
+		LCD_FStr(buf, 0, 1);
+		sprintf(buf, "%s", "Setting");
 		LCD_FStr(buf, 0, 2);
+		sprintf(buf, "%s", "About");
+		LCD_FStr(buf, 0, 3);
 		LCD_Update();
-		vTaskDelay(100);
+		vTaskDelay(1000);
 	}
 	return;
 };
+
+void timer_task(void * pvParameters) {
+	while(1){
+		globalTime++;
+		vTaskDelay(1000);
+	}
+	return;
+}
 
 /* USER CODE END 0 */
 
@@ -167,8 +174,12 @@ int main(void)
   // Init SD card here
   SD_init();
 
+
+  // Initialize OLED display status
+  OLED_display_status = OLED_MENU;
   // Start task here
   xTaskCreate(OLED_task, "OLED_task", STACK_SIZE, (void *) NULL, 5, NULL);
+  xTaskCreate(timer_task, "timer_task", STACK_SIZE, (void *) NULL, 10, NULL);
 
   // Start scheduler here
   vTaskStartScheduler();
@@ -384,11 +395,13 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
+	if((globalTime - lastEventTime) < 1) return;
+	// Start interrupt event
 	char buf[256];
 	int button = -1;
 	switch(GPIO_Pin){
 		case GPIO_PIN_0:
-			button = 1;
+			button = 0;
 			break;
 		case GPIO_PIN_1:
 			button = 1;
@@ -402,21 +415,15 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 		case GPIO_PIN_4:
 			button = 4;
 			break;
-		case GPIO_PIN_5:
-			button = 5;
-			break;
-		case GPIO_PIN_6:
-			button = 6;
-			break;
-		case GPIO_PIN_7:
-			button = 7;
-			break;
 		default:
 			return;
 			break;
 	}
-	sprintf(buf,"External IO button %d pressed!\n\r", button);
+	sprintf(buf,"External IO button %d pressed!\n\rbuttonCounter %d\n\r", button, buttonCounter++);
 	HAL_UART_Transmit(&huart2, (uint8_t*) buf, strlen(buf), 0xffff);
+
+	// Update lastEventTime
+	lastEventTime = globalTime;
 	return;
 }
 
