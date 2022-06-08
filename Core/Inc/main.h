@@ -59,6 +59,13 @@ void MX_SPI1_Init(void);
 /* Private defines -----------------------------------------------------------*/
 #define SDCard_CS_Pin GPIO_PIN_4
 #define SDCard_CS_GPIO_Port GPIOA
+
+#define OLED_MENU 1
+#define OLED_FILE_BROWSER 2
+#define OLED_PLAYER 3
+#define OLED_SETTING 4
+#define OLED_ABOUT 5
+
 /* USER CODE BEGIN Private defines */
 extern I2C_HandleTypeDef hi2c1;
 
