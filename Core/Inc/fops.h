@@ -14,8 +14,8 @@
 #include "main.h"
 #include "fatfs.h"
 
-void exf_getfree(void);
-void exf_mount(void);
+uint32_t exf_getfree(void);
+int exf_mount(void);
 uint8_t exf_open(const void* filename, BYTE mode);
 uint8_t exf_write(const void* filename, const void* buf, uint32_t len);
 uint8_t exf_read(const void* filename, void* buf, uint32_t len);

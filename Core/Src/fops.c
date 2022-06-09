@@ -10,7 +10,7 @@
 #include "fops.h"
 #include "main.h"
 #include "string.h"
-void exf_getfree(void)
+uint32_t exf_getfree(void)
 {
     FATFS *fs;
     DWORD fre_clust, fre_sect, tot_sect;
@@ -28,14 +28,18 @@ void exf_getfree(void)
         HAL_UART_Transmit(&huart2, (uint8_t*) buf, strlen(buf), 0xffff);
         sprintf(buf, "# SD Card Free  Size:%ldMB\r\n", fre_sect);
         HAL_UART_Transmit(&huart2, (uint8_t*) buf, strlen(buf), 0xffff);
+
+        return fre_sect;
     }
 }
 
-void exf_mount(void)
+int exf_mount(void)
 {
+	int status_code = f_mount(&USERFatFS, USERPath, 1);
 	char buf[256];
-    sprintf(buf, "# SD Card Mount %s!\r\n", f_mount(&USERFatFS, USERPath, 1) == FR_OK ? "Successfullly" : "Failed");
+    sprintf(buf, "# SD Card Mount %s!\r\n",  status_code == FR_OK ? "Successfullly" : "Failed");
     HAL_UART_Transmit(&huart2, (uint8_t*) buf, strlen(buf), 0xffff);
+    return status_code;
 }
 
 uint8_t exf_open(const void* filename, BYTE mode)
