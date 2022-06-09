@@ -49,8 +49,8 @@
 #define MSD_RESPONSE_FAILURE       0xFF
 
 // SD��Ƭѡ���ſ��ƣ�ʹ��STM32CUBEMX����SD��Ƭѡ����Ϊ���ģʽ������Ϊ�ߵ�ƽ
-#define SD_CS_H()		HAL_GPIO_WritePin(SDCard_CS_GPIO_Port,SDCard_CS_Pin, GPIO_PIN_SET)
-#define SD_CS_L()		HAL_GPIO_WritePin(SDCard_CS_GPIO_Port,SDCard_CS_Pin, GPIO_PIN_RESET)
+#define SD_CS_H()		HAL_GPIO_WritePin(SDcard_CS_GPIO_Port,SDcard_CS_Pin, GPIO_PIN_SET)
+#define SD_CS_L()		HAL_GPIO_WritePin(SDcard_CS_GPIO_Port,SDcard_CS_Pin, GPIO_PIN_RESET)
 
 extern uint8_t SD_Type;			//SD��������
 

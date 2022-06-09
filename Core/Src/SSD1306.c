@@ -20,7 +20,7 @@
 //----------------------------------------------------------------------------------
 
 //----------------------------------------------------------------------------------
-extern I2C_HandleTypeDef hi2c1;
+extern I2C_HandleTypeDef hi2c2;
 
 uint8_t  lcd_buff[BUFF_SIZE];
 uint16_t lcd_buff_idx=0;
@@ -63,7 +63,7 @@ uint8_t comm[]={
 //----------------------------------------------------------------------------------
 void LCD_Init(void)
 {
-   HAL_I2C_Master_Transmit(&hi2c1, LCD_ADDRESS, comm, sizeof(comm),10);
+   HAL_I2C_Master_Transmit(&hi2c2, LCD_ADDRESS, comm, sizeof(comm),10);
 }
 //----------------------------------------------------------------------------------
 void  LCD_command(uint8_t cmd)
@@ -71,7 +71,7 @@ void  LCD_command(uint8_t cmd)
    uint8_t cmd_arr[2] = {0,0};
    cmd_arr[0] = COMMAND_MODE;
    cmd_arr[1] = cmd;
-   HAL_I2C_Master_Transmit(&hi2c1, LCD_ADDRESS, cmd_arr, sizeof(cmd_arr),10);
+   HAL_I2C_Master_Transmit(&hi2c2, LCD_ADDRESS, cmd_arr, sizeof(cmd_arr),10);
 }
 //----------------------------------------------------------------------------------
 void LCD_On(void)
@@ -105,7 +105,7 @@ void LCD_Update(void)
    
    lcd_buff[0]= DATA_MODE;              
    
-   HAL_I2C_Master_Transmit(&hi2c1, LCD_ADDRESS, lcd_buff, BUFF_SIZE,50);
+   HAL_I2C_Master_Transmit(&hi2c2, LCD_ADDRESS, lcd_buff, BUFF_SIZE,50);
 }
 //----------------------------------------------------------------------------------
 void LCD_Chr(char ch)
