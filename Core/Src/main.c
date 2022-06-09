@@ -56,8 +56,8 @@ SPI_HandleTypeDef hspi1;
 UART_HandleTypeDef huart2;
 
 
-int OLED_display_status = -1;
-int buttonCounter = 0;
+unsigned OLED_display_status = OLED_MENU;
+unsigned menu_select = MENU_FILE_BROWSER;
 
 unsigned globalTime = 0;
 unsigned lastEventTime = -1;
@@ -92,35 +92,80 @@ void SD_init(){
 	// Clear LCD before showing anything
 	LCD_Clear();
 
-	// Try to get SD card Sector Count
-	sprintf(buf, "SD card sector count");
+	MX_FATFS_Init();
+
+	LCD_Clear();
+	int mount = exf_mount();
+	sprintf(buf, "SD card mount");
 	LCD_FStr(buf, 0, 0);
-	sprintf(buf, "%u", SD_GetSectorCount());
+	sprintf(buf, "%s", mount == FR_OK ? "Success" : "Fail");
 	LCD_FStr(buf, 0, 1);
 	LCD_Update();
-	HAL_Delay(2000);
+	HAL_Delay(1000);
 
-	MX_FATFS_Init();
-	exf_mount();
-	exf_getfree();
-
+	LCD_Clear();
+	unsigned free = exf_getfree();
+	sprintf(buf, "SD card free space");
+	LCD_FStr(buf, 0, 0);
+	sprintf(buf, "%u MB", free);
+	LCD_FStr(buf, 0, 1);
+	LCD_Update();
+	HAL_Delay(1000);
 	return;
 };
 
 void OLED_task(void * pvParameters) {
 	char buf[22];
 	while(1){
-		// Clear OLED before displaying stuff
-		LCD_Clear();
-		sprintf(buf, "%s %c", "File Browser", 0x3C);
-		LCD_FStr(buf, 0, 0);
-		sprintf(buf, "%s", "Player");
-		LCD_FStr(buf, 0, 1);
-		sprintf(buf, "%s", "Setting");
-		LCD_FStr(buf, 0, 2);
-		sprintf(buf, "%s", "About");
-		LCD_FStr(buf, 0, 3);
-		LCD_Update();
+		if(OLED_display_status == OLED_MENU){
+			// Clear OLED before displaying stuff
+			LCD_Clear();
+			sprintf(buf, "%c %s", (menu_select == MENU_FILE_BROWSER) ? '>' : ' ', "File Browser");
+			LCD_FStr(buf, 0, 0);
+			sprintf(buf, "%c %s", (menu_select == MENU_PLAYER) ? '>' : ' ', "Player");
+			LCD_FStr(buf, 0, 1);
+			sprintf(buf, "%c %s", (menu_select == MENU_SETTING) ? '>' : ' ', "Setting");
+			LCD_FStr(buf, 0, 2);
+			sprintf(buf, "%c %s", (menu_select == MENU_ABOUT) ? '>' : ' ', "About");
+			LCD_FStr(buf, 0, 3);
+			LCD_Update();
+		}
+		else if(OLED_display_status == OLED_FILE_BROWSER){
+			LCD_Clear();
+			sprintf(buf, "File Browser");
+			LCD_FStr(buf, 0, 0);
+			sprintf(buf, "Placeholder");
+			LCD_FStr(buf, 0, 1);
+			LCD_Update();
+		}
+		else if(OLED_display_status == OLED_PLAYER){
+			LCD_Clear();
+			sprintf(buf, "Player");
+			LCD_FStr(buf, 0, 0);
+			sprintf(buf, "Placeholder");
+			LCD_FStr(buf, 0, 1);
+			LCD_Update();
+		}
+		else if(OLED_display_status == OLED_SETTING){
+			LCD_Clear();
+			sprintf(buf, "Setting");
+			LCD_FStr(buf, 0, 0);
+			sprintf(buf, "Placeholder");
+			LCD_FStr(buf, 0, 1);
+			LCD_Update();
+		}
+		else if(OLED_display_status == OLED_ABOUT){
+			LCD_Clear();
+			sprintf(buf, "AudioPlayer");
+			LCD_FStr(buf, 0, 0);
+			sprintf(buf, "NCKU CSIE EOS project");
+			LCD_FStr(buf, 0, 1);
+			sprintf(buf, "2022");
+			LCD_FStr(buf, 0, 2);
+			sprintf(buf, "Press any key to menu");
+			LCD_FStr(buf, 0, 3);
+			LCD_Update();
+		}
 		vTaskDelay(1000);
 	}
 	return;
@@ -174,12 +219,9 @@ int main(void)
   // Init SD card here
   SD_init();
 
-
-  // Initialize OLED display status
-  OLED_display_status = OLED_MENU;
   // Start task here
-  xTaskCreate(OLED_task, "OLED_task", STACK_SIZE, (void *) NULL, 5, NULL);
-  xTaskCreate(timer_task, "timer_task", STACK_SIZE, (void *) NULL, 10, NULL);
+  xTaskCreate(OLED_task, "OLED_task", STACK_SIZE, (void *) NULL, 14, NULL);
+  xTaskCreate(timer_task, "timer_task", STACK_SIZE, (void *) NULL, 1, NULL);
 
   // Start scheduler here
   vTaskStartScheduler();
@@ -394,32 +436,140 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
-	if((globalTime - lastEventTime) < 1) return;
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+	if ((globalTime - lastEventTime) < 1)
+		return;
 	// Start interrupt event
 	char buf[256];
 	int button = -1;
-	switch(GPIO_Pin){
-		case GPIO_PIN_0:
-			button = 0;
-			break;
-		case GPIO_PIN_1:
-			button = 1;
-			break;
-		case GPIO_PIN_2:
-			button = 2;
-			break;
-		case GPIO_PIN_3:
-			button = 3;
-			break;
-		case GPIO_PIN_4:
-			button = 4;
-			break;
-		default:
-			return;
-			break;
+	switch (GPIO_Pin) {
+	case GPIO_PIN_0:
+		button = 0;
+		if (OLED_display_status == OLED_MENU) {
+			// Do nothing when at menu
+		} else if (OLED_display_status == OLED_FILE_BROWSER) {
+			// When at file browser
+			// Press first button to go back to menu
+			OLED_display_status = OLED_MENU;
+		} else if (OLED_display_status == OLED_PLAYER) {
+			// When at file browser
+			// Press first button to go back to menu
+			OLED_display_status = OLED_MENU;
+		} else if (OLED_display_status == OLED_SETTING) {
+			// When at file browser
+			// Press first button to go back to menu
+			OLED_display_status = OLED_MENU;
+		} else if (OLED_display_status == OLED_ABOUT) {
+			// Press any key to return to menu
+			OLED_display_status = OLED_MENU;
+		}
+		break;
+	case GPIO_PIN_1:
+		button = 1;
+		if (OLED_display_status == OLED_MENU) {
+			switch (menu_select) {
+			case MENU_FILE_BROWSER:
+				OLED_display_status = OLED_FILE_BROWSER;
+				break;
+			case MENU_PLAYER:
+				OLED_display_status = OLED_PLAYER;
+				break;
+			case MENU_SETTING:
+				OLED_display_status = OLED_SETTING;
+				break;
+			case MENU_ABOUT:
+				OLED_display_status = OLED_ABOUT;
+				break;
+			default:
+				break;
+			}
+		} else if (OLED_display_status == OLED_FILE_BROWSER) {
+			// When at file browser
+			// Press first button to go back to menu
+			OLED_display_status = OLED_MENU;
+		} else if (OLED_display_status == OLED_PLAYER) {
+			// When at file browser
+			// Press first button to go back to menu
+			OLED_display_status = OLED_MENU;
+		} else if (OLED_display_status == OLED_SETTING) {
+			// When at file browser
+			// Press first button to go back to menu
+			OLED_display_status = OLED_MENU;
+		} else if (OLED_display_status == OLED_ABOUT) {
+			// Press any key to return to menu
+			OLED_display_status = OLED_MENU;
+		}
+		break;
+	case GPIO_PIN_2:
+		button = 2;
+		if (OLED_display_status == OLED_MENU) {
+			// Do nothing
+		} else if (OLED_display_status == OLED_FILE_BROWSER) {
+			// When at file browser
+			// Press first button to go back to menu
+			OLED_display_status = OLED_MENU;
+		} else if (OLED_display_status == OLED_PLAYER) {
+			// When at file browser
+			// Press first button to go back to menu
+			OLED_display_status = OLED_MENU;
+		} else if (OLED_display_status == OLED_SETTING) {
+			// When at file browser
+			// Press first button to go back to menu
+			OLED_display_status = OLED_MENU;
+		} else if (OLED_display_status == OLED_ABOUT) {
+			// Press any key to return to menu
+			OLED_display_status = OLED_MENU;
+		}
+		break;
+	case GPIO_PIN_3:
+		button = 3;
+		if (OLED_display_status == OLED_MENU) {
+			if (menu_select != MENU_FILE_BROWSER)
+				menu_select--;
+		} else if (OLED_display_status == OLED_FILE_BROWSER) {
+			// When at file browser
+			// Press first button to go back to menu
+			OLED_display_status = OLED_MENU;
+		} else if (OLED_display_status == OLED_PLAYER) {
+			// When at file browser
+			// Press first button to go back to menu
+			OLED_display_status = OLED_MENU;
+		} else if (OLED_display_status == OLED_SETTING) {
+			// When at file browser
+			// Press first button to go back to menu
+			OLED_display_status = OLED_MENU;
+		} else if (OLED_display_status == OLED_ABOUT) {
+			// Press any key to return to menu
+			OLED_display_status = OLED_MENU;
+		}
+		break;
+	case GPIO_PIN_4:
+		button = 4;
+		if (OLED_display_status == OLED_MENU) {
+			if (menu_select != MENU_ABOUT)
+				menu_select++;
+		} else if (OLED_display_status == OLED_FILE_BROWSER) {
+			// When at file browser
+			// Press first button to go back to menu
+			OLED_display_status = OLED_MENU;
+		} else if (OLED_display_status == OLED_PLAYER) {
+			// When at file browser
+			// Press first button to go back to menu
+			OLED_display_status = OLED_MENU;
+		} else if (OLED_display_status == OLED_SETTING) {
+			// When at file browser
+			// Press first button to go back to menu
+			OLED_display_status = OLED_MENU;
+		} else if (OLED_display_status == OLED_ABOUT) {
+			// Press any key to return to menu
+			OLED_display_status = OLED_MENU;
+		}
+		break;
+	default:
+		return;
+		break;
 	}
-	sprintf(buf,"External IO button %d pressed!\n\rbuttonCounter %d\n\r", button, buttonCounter++);
+	sprintf(buf, "External IO button %d pressed!\n\r", button);
 	HAL_UART_Transmit(&huart2, (uint8_t*) buf, strlen(buf), 0xffff);
 
 	// Update lastEventTime

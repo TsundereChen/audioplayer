@@ -66,6 +66,11 @@ void MX_SPI1_Init(void);
 #define OLED_SETTING 4
 #define OLED_ABOUT 5
 
+#define MENU_FILE_BROWSER 0
+#define MENU_PLAYER 1
+#define MENU_SETTING 2
+#define MENU_ABOUT 3
+
 /* USER CODE BEGIN Private defines */
 extern I2C_HandleTypeDef hi2c1;
 
