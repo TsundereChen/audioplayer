@@ -71,6 +71,7 @@ void MX_SPI1_Init(void);
 #define MENU_SETTING 2
 #define MENU_ABOUT 3
 
+#define SETTING_VOLUME 1
 
 extern I2C_HandleTypeDef hi2c1;
 
