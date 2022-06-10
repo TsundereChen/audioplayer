@@ -58,7 +58,7 @@ FRESULT AUDIO_StorageParse(void)
       {
         break;
       }
-      if(fno.fname[0] == '.')
+      if(fno.fname[0] == '.' || fno.fname[0] == '_')
       {
         continue;
       }

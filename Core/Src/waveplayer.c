@@ -69,7 +69,7 @@
 #include "AUDIO.h"
 
 //static uint32_t uwVolume = 40;
-uint32_t uwVolume = 40;
+uint32_t uwVolume = 80;
 
 /*>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> NO CHANGES AFTER THIS <<<<<<<<<<<<<<<<<<<<<<<<<<<<*/
 

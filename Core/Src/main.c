@@ -66,6 +66,7 @@ UART_HandleTypeDef huart2;
 // Default value
 int OLED_display_status = OLED_MENU;
 int menu_select = MENU_FILE_BROWSER;
+int file_select = 0;
 int setting_select = SETTING_VOLUME;
 
 int globalTime = 0;
@@ -152,15 +153,35 @@ void OLED_task(void *pvParameters) {
 			LCD_Clear();
 			sprintf(buf, "File Browser");
 			LCD_FStr(buf, 0, 0);
-			sprintf(buf, "Placeholder");
-			LCD_FStr(buf, 0, 1);
+			for (int i = 0; i < 3; i++) {
+				sprintf(buf, "%c %s", (file_select == i) ? '>' : ' ',
+						FileList.file[i].name);
+				LCD_FStr(buf, 0, i + 1);
+			}
 			LCD_Update();
 		} else if (OLED_display_status == OLED_PLAYER) {
 			LCD_Clear();
 			sprintf(buf, "Player");
 			LCD_FStr(buf, 0, 0);
-			sprintf(buf, "Playing audio...");
+			sprintf(buf, "> Now Playing");
 			LCD_FStr(buf, 0, 1);
+			sprintf(buf, ">> %s", FileList.file[file_select].name);
+			LCD_FStr(buf, 0, 2);
+			switch(AudioState){
+			case AUDIO_STATE_PLAY:
+				sprintf(buf, "PLAYING");
+				break;
+			case AUDIO_STATE_IDLE:
+				sprintf(buf, "STOPPED");
+				break;
+			case AUDIO_STATE_WAIT:
+				sprintf(buf, "PAUSED");
+				break;
+			default:
+				sprintf(buf, "STOPPED");
+				break;
+			}
+			LCD_FStr(buf, 0, 3);
 			LCD_Update();
 		} else if (OLED_display_status == OLED_SETTING) {
 			LCD_Clear();
@@ -198,19 +219,11 @@ void timer_task(void *pvParameters) {
 }
 
 void audio_task(void *pvParameters) {
-	for (;;) {
-//		int isFinished = 0;
-////		AUDIO_PLAYER_Start(0);
-//		while(!isFinished){
-//			AUDIO_PLAYER_Process(pdTRUE);
-//			vTaskDelay(1);
-//			if(AudioState == AUDIO_STATE_STOP){
-//				isFinished = 1;
-//			}
-//		}
+	while (1) {
 		AUDIO_PLAYER_Process(pdTRUE);
 		vTaskDelay(1 / portTICK_PERIOD_MS);
 	}
+	return;
 }
 
 /* USER CODE END 0 */
@@ -249,11 +262,13 @@ int main(void) {
 	MX_I2C1_Init();
 	MX_I2C2_Init();
 	/* USER CODE BEGIN 2 */
-
 	LCD_Init();
 
 	// Init SD card here
 	SD_init();
+
+	// Parse SD card media files first
+	AUDIO_StorageParse();
 
 	// Start task here
 	xTaskCreate(OLED_task, "OLED_task", STACK_SIZE, (void*) NULL, 14, NULL);
@@ -584,7 +599,6 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 				break;
 			case MENU_PLAYER:
 				OLED_display_status = OLED_PLAYER;
-				AUDIO_PLAYER_Start(1);
 				break;
 			case MENU_SETTING:
 				OLED_display_status = OLED_SETTING;
@@ -596,9 +610,10 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 				break;
 			}
 		} else if (OLED_display_status == OLED_FILE_BROWSER) {
-			// When at file browser
-			// Press first button to go back to menu
-			OLED_display_status = OLED_MENU;
+			// Press this button to select file to play
+			AUDIO_PLAYER_Start(file_select);
+			// Change display to OLED_PLAYER
+			OLED_display_status = OLED_PLAYER;
 		} else if (OLED_display_status == OLED_PLAYER) {
 			// Press this button to pause/play
 			if (AudioState == AUDIO_STATE_PLAY)
@@ -621,9 +636,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 		if (OLED_display_status == OLED_MENU) {
 			// Do nothing
 		} else if (OLED_display_status == OLED_FILE_BROWSER) {
-			// When at file browser
-			// Press first button to go back to menu
-			OLED_display_status = OLED_MENU;
+			// Do nothing
 		} else if (OLED_display_status == OLED_PLAYER) {
 			// Press this button to stop
 			AudioState = AUDIO_STATE_STOP;
@@ -643,14 +656,13 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 		if (OLED_display_status == OLED_MENU) {
 			if (menu_select != MENU_FILE_BROWSER)
 				menu_select--;
+			else if(menu_select == MENU_FILE_BROWSER)
+				menu_select = MENU_ABOUT;
 		} else if (OLED_display_status == OLED_FILE_BROWSER) {
-			// When at file browser
-			// Press first button to go back to menu
-			OLED_display_status = OLED_MENU;
+			// Select previous file
+			if (file_select > 0) file_select--;
 		} else if (OLED_display_status == OLED_PLAYER) {
-			// When at file browser
-			// Press first button to go back to menu
-			OLED_display_status = OLED_MENU;
+			// Do nothing
 		} else if (OLED_display_status == OLED_SETTING) {
 			// Since there are only volume to change
 			// Do nothing
@@ -665,14 +677,13 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 		if (OLED_display_status == OLED_MENU) {
 			if (menu_select != MENU_ABOUT)
 				menu_select++;
+			else if(menu_select == MENU_ABOUT)
+				menu_select = MENU_FILE_BROWSER;
 		} else if (OLED_display_status == OLED_FILE_BROWSER) {
-			// When at file browser
-			// Press first button to go back to menu
-			OLED_display_status = OLED_MENU;
+			// Select next file
+			if (file_select < 2) file_select++;
 		} else if (OLED_display_status == OLED_PLAYER) {
-			// When at file browser
-			// Press first button to go back to menu
-			OLED_display_status = OLED_MENU;
+			// Do nothing
 		} else if (OLED_display_status == OLED_SETTING) {
 			// Since there are only volume to change
 			// Do nothing
